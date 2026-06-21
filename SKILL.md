@@ -1,6 +1,6 @@
 ---
 name: parallel-verification
-version: 1.0.1
+version: 1.0.2
 description: >-
   Build a Parallel Verification (PV) harness — an out-of-band, last-mile
   integration check that proves a system actually does what it claims by
@@ -58,12 +58,38 @@ Two artifacts, always:
 
 1. **A reusable harness** — executable scripts (typically bash) that generate
    inputs, drive the system, perform last-mile verification, and exit non-zero
-   on any mismatch. It lives in the repo (e.g. under `scratchpads/<feature>-e2e/`
-   or a `verify/` directory) so anyone can re-run it. It is not a throwaway; it
-   is the proof, kept.
+   on any mismatch. It lives in its own self-contained directory (see "Where the
+   harness lives" below) so anyone can re-run it in isolation. It is not a
+   throwaway; it is the proof, kept.
 2. **A findings report** (`FINDINGS.md`) — the human-readable verdict: what was
    verified, the evidence, and any discoveries that go beyond pass/fail
    (severity, root cause, remediation). See the structure below.
+
+## Where the harness lives — ask first, isolate always
+
+Before writing anything, decide *where* the harness goes — and don't assume.
+
+- **Ask the user where to create the PV harness**, defaulting to
+  `./scratchpads/`. Repos differ — some have a `verify/` dir, a `test/e2e/`
+  tree, or a dedicated scratch area — and a wrong guess scatters artifacts where
+  they don't belong. Propose `./scratchpads/<feature>-pv/` and let them confirm
+  or redirect before you create files.
+
+- **Each PV test is atomic and self-contained.** Give every test its own
+  directory under the chosen location, holding everything it needs: its own
+  input files (`main.tf`, request payloads), its own runner script, its own
+  log, its own state. A test must be runnable in isolation, in any order,
+  without depending on another test's setup or leftovers — and its cleanup trap
+  must remove only what it created. This keeps failures localized and lets you
+  re-run one scenario without disturbing the others.
+
+- **Don't assume scaffolding that isn't there.** Do not presume an existing
+  harness to model from, a particular SDK or worktree layout, or a sibling repo
+  path. Discover the real structure first — search the repo, read what's
+  actually present — and when it isn't evident, ask rather than inventing a
+  path. A confident wrong assumption about where code or a backing service
+  lives quietly invalidates the entire run; verifying against the wrong thing
+  is the one failure mode PV exists to prevent.
 
 ## The core PV loop
 
